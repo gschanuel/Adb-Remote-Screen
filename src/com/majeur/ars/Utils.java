@@ -11,7 +11,8 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class Utils {
-
+	public final static boolean IS_WINDOW = System.getProperty("os.name").toLowerCase().contains("windows");
+	
 	static String streamToString(java.io.InputStream is) {
 		java.util.Scanner s = new Scanner(is).useDelimiter("\\A");
 		return s.hasNext() ? s.next() : "";
@@ -20,7 +21,11 @@ public class Utils {
 	static String getRunningJarPath() {
 		try {
 			String s = Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-			return s.substring(0, s.lastIndexOf(System.getProperty("file.separator")));
+			if (IS_WINDOW) {
+				return s.substring(0, s.lastIndexOf("/"/*System.getProperty("file.separator")*/));
+			} else {
+				return s.substring(0, s.lastIndexOf("/"/*System.getProperty("file.separator")*/));
+			}
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 			return null;
@@ -49,6 +54,7 @@ public class Utils {
 	
 	static InputStream executeCommandGetInputStream(String... command) {
 		try {
+			System.out.println(">>>command: " + Arrays.toString(command));
 			Runtime runtime = Runtime.getRuntime();
 		    Process process = command.length == 1 ? runtime.exec(command[0]) : runtime.exec(command);
 		    

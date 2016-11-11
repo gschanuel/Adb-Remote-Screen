@@ -2,9 +2,11 @@ package com.majeur.ars;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,6 +17,7 @@ import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
 public class AdbHelper {
+	public final static boolean IS_WINDOW = System.getProperty("os.name").toLowerCase().contains("windows");
 	
 	private DevicesWatcher mDevicesWatcher;	
 	private final String mAdbPath;
@@ -93,12 +96,68 @@ public class AdbHelper {
 		final String command = String.format(Constants.Adb.CMD_SCREENCAP, mAdbPath, mDevice);
 		
 		try {
-			return ImageIO.read(Utils.executeCommandGetInputStream("/bin/sh", "-c", command));
+			InputStream inputStream;
+			if (IS_WINDOW) {
+				inputStream = Utils.executeCommandGetInputStream(command);
+			} else {
+				inputStream = Utils.executeCommandGetInputStream("/bin/sh", "-c", command);
+			}
+			byte[] bytes = convertStreamToByteArray(inputStream);
+			System.out.println("bytes.length=" + bytes.length);
+			InputStream inputStream2 = convertStreamToByteArray(bytes);
+			return ImageIO.read(inputStream2);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
+	
+	public static InputStream convertStreamToByteArray(byte[] bytes) {
+		byte[] bytes2 = new byte[bytes.length];
+		int k = 0;
+		for (int i = 0; i < bytes.length; i++) {
+			if (i + 2 < bytes.length) {
+				//System.out.println("==========>" + Integer.toHexString(bytes[i] & 0xff));
+				if ((bytes[i + 0] & 0xff) == 0x0D && 
+					(bytes[i + 1] & 0xff) == 0x0D &&
+					(bytes[i + 2] & 0xff) == 0x0A) {
+					i++;
+					continue;
+				}
+			}
+			bytes2[k] = bytes[i];
+			k++;
+		}
+		byte[] bytes3 = new byte[k];
+		for (int i = 0; i < k; i++) {
+			bytes3[i] = bytes2[i];
+		}
+		System.out.println("bytes3.length=" + bytes3.length);
+		return new ByteArrayInputStream(bytes3);
+	}
+	
+	public static byte[] convertStreamToByteArray(InputStream is) {
+		try {
+			ByteArrayOutputStream ots = new ByteArrayOutputStream();
+			byte[] data = new byte[4096];
+			int count = -1;
+			while ((count = is.read(data)) != -1) {
+				ots.write(data, 0, count);
+			}
+			byte[] bytes = ots.toByteArray();
+			return bytes;
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return new byte[0];
+	}
+	
 	
 	public boolean saveScreenShotToFile(File file) {
 		if (mDevice == null)

@@ -216,8 +216,8 @@ public class ScreenPanel extends JPanel implements MouseListener, KeyListener {
 
 				mImage = mAdbHelper.retrieveScreenShot();
 				
-				if (mImage == null)
-					abort();
+				//if (mImage == null)
+				//	abort();
 				
 				repaintPanel();
 			}
